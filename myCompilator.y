@@ -1,12 +1,36 @@
-%{
-	#include <iostream>
+%{    
+    #include <cstdio>
+    #include <string>
+    #include <iostream>
+    
+    using namespace std;
+    //#define YYSTYPE string
+    #define YYERROR_VERBOSE 1
+    #define DEBUG
+    
+    int  wrapRet = 1;
+    
+    int yylex(void);
+    extern "C" {
+        int yywrap( void ) {
+            return wrapRet;
+        }
+    }
+    void yyerror(const char *str) {
+        #ifdef DEBUG
+          //cout << "Parser: " << str << endl;
+        #endif
+    }
+ 
+    int main();
+ 
 %}
 
 %start progr
 
-%token BEGIN END IF THEN OTHERWISE REPEAT WHILE WRITE READ
+%token BEG END IF THEN OTHERWISE REPEAT WHILE WRITE READ
 %token ASSIGN SEMICOLON COMMA LBR RBR COLON DOT SPACE 
-%token PLUS MINUS MULT DIVIDE GOTO LABEL CLASS
+%token PLUS MINUS MULT DIVIDE GOTO LABEL CLASS EX
 %token AND OR NOT LT GT EQ NE LE GE
 %token INTNUM INTEGER
 %token STRLIT STRING
@@ -24,7 +48,7 @@ progr : class listofoperators
 	| listofoperators
 	;
 
-class : CLASS ID BEGIN classmembers END
+class : CLASS ID BEG classmembers END
 	;
 
 classmembers : data SEMICOLON classmembers
@@ -39,10 +63,11 @@ simpletype : INTEGER
 	| STRING
 	;
 
-method : ID COLON SIMPLETYPE LBR parameters_declaration RBR BEGIN listofoperators END
+method : ID COLON simpletype LBR parameters_declaration RBR BEG listofoperators END
 	;
 
-parameters_declaration : data COMMA parametrs
+parameters_declaration : 
+	|data COMMA parameters
 	| data
 	;
 
@@ -61,9 +86,9 @@ operator: {}
 	
 	| IF SPACE expr SPACE THEN SPACE operator SPACE otherwise //if
 	
-	| BEGIN listoperator END //block
+	| BEG listofoperators END //block
 	{
-		$$ = $2;
+		//$$ = $2;
 	}
 	| WRITE LBR expr RBR //write
 	
@@ -78,10 +103,10 @@ operator: {}
 
 otherwise: 
 	{
-		$$ = null;
+		//$$ = null;
 	}
 	| OTHERWISE operator {
-		$$ = $2;
+		//$$ = $2;
 	}
 	;
 
@@ -98,19 +123,19 @@ expr: INTNUM
 	| ID DOT ID LBR parameters RBR //call class method
 	| expr PLUS expr 
 	{
-		$$ = new BinExpression($1, $3, Op.Plus, @$);
+		//$$ = new BinExpression($1, $3, Op.Plus, @$);
 	}
 	| expr MINUS expr 
 	{
-		$$ = new BinExpression($1, $3, Op.Minus, @$);
+		//$$ = new BinExpression($1, $3, Op.Minus, @$);
 	}
 	| expr MULT expr 
 	{
-		$$ = new BinExpression($1, $3, Op.Mult, @$);
+		//$$ = new BinExpression($1, $3, Op.Mult, @$);
 	}
 	| expr DIVIDE expr 
 	{
-		$$ = new BinExpression($1, $3, Op.Divide, @$);
+		//$$ = new BinExpression($1, $3, Op.Divide, @$);
 	}
 	| expr DIV expr 
 	{
@@ -122,55 +147,55 @@ expr: INTNUM
 	}
 	| expr AND expr 
 	{
-		if ($1.getType() != TipType.BoolType || $2.getType() != TipType.BoolType)
+		/*if ($1.getType() != TipType.BoolType || $2.getType() != TipType.BoolType)
 		{
 			// Error: only for bool types
 		}
-		$$ = new BinExpression($1, $3, Op.And, @$);
+		$$ = new BinExpression($1, $3, Op.And, @$);*/
 	}
 	| expr OR expr 
 	{
-		if ($1.getType() != TipType.BoolType || $2.getType() != TipType.BoolType)
+		/*if ($1.getType() != TipType.BoolType || $2.getType() != TipType.BoolType)
 		{
 		    // Error: only for bool types
 		}
-		$$ = new BinExpression($1, $3, Op.Or, @$);
+		$$ = new BinExpression($1, $3, Op.Or, @$);*/
 	}
 	| expr LT expr 
 	{
-		$$ = new BinExpression($1, $3, Op.Less, @$);
+		/*$$ = new BinExpression($1, $3, Op.Less, @$);*/
 	}
 	| expr GT expr 
 	{
-		$$ = new BinExpression($1, $3, Op.More, @$);
+		//$$ = new BinExpression($1, $3, Op.More, @$);
 	}
 	| expr LE expr	
 	{
-		$$ = new BinExpression($1, $3, Op.LessEqual, @$);
+		//$$ = new BinExpression($1, $3, Op.LessEqual, @$);
 	}
 	| expr GE expr 
 	{
-		$$ = new BinExpression($1, $3, Op.MoreEqual, @$);       
+		//$$ = new BinExpression($1, $3, Op.MoreEqual, @$);       
 	}
 	| expr EQ expr
 	{
-		$$ = new BinExpression($1, $3, Op.Equal, @$);       
+		//$$ = new BinExpression($1, $3, Op.Equal, @$);       
 	}
 	| expr NE expr 
 	{
-		$$ = new BinExpression($1, $3, Op.NotEqual, @$);        
+		//$$ = new BinExpression($1, $3, Op.NotEqual, @$);        
 	}
 	| NOT expr 
 	{
-		if ($2.getType() != TipType.BoolType)
+		/*if ($2.getType() != TipType.BoolType)
 		{
 		// Error: type is wrong.
 		}
-		$$ = new UnarExpression($2, Op.Not, @2);
+		$$ = new UnarExpression($2, Op.Not, @2);*/
 	}
 	| LBR expr RBR
 	{
-		$$ = $2;
+		//$$ = $2;
 	}
 	;
 
@@ -178,3 +203,8 @@ parameters : ID
 	| ID COMMA parameters
 	;
 %%
+
+int main()
+{
+    return yyparse();
+}
