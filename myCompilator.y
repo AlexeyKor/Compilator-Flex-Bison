@@ -1,19 +1,16 @@
+%{
+	#include <iostream>
+%}
+
 %start progr
 
 %token BEGIN END IF THEN OTHERWISE REPEAT WHILE WRITE READ
 %token ASSIGN SEMICOLON COMMA LBR RBR COLON DOT SPACE 
-%token PLUS MINUS MULT DIVIDE GOTO LABEL
+%token PLUS MINUS MULT DIVIDE GOTO LABEL CLASS
 %token AND OR NOT LT GT EQ NE LE GE
 %token INTNUM INTEGER
 %token STRLIT STRING
 %token ID //it can be either parameter or data of class
-
-%type expr
-%type class
-%type operator otherwise
-%type listofoperators progr  
-%type type simpletype
-%type parameters_declaration parameters
 
 %left LT GT LE GE EQ NE
 %left MINUS PLUS OR
@@ -27,7 +24,7 @@ progr : class listofoperators
 	| listofoperators
 	;
 
-class : ID BEGIN classmembers END
+class : CLASS ID BEGIN classmembers END
 	;
 
 classmembers : data SEMICOLON classmembers
