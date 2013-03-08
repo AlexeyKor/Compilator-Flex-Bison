@@ -29,7 +29,7 @@
 %start progr
 
 %token BEG END IF THEN OTHERWISE REPEAT WHILE WRITE READ
-%token ASSIGN SEMICOLON COMMA LBR RBR COLON DOT SPACE 
+%token ASSIGN SEMICOLON COMMA LBR RBR COLON DOT
 %token PLUS MINUS MULT DIVIDE GOTO LABEL CLASS EX
 %token AND OR NOT LT GT EQ NE LE GE
 %token INTNUM INTEGER
@@ -80,11 +80,11 @@ listofoperators : operator SEMICOLON listofoperators
 operator: {}
 	| ID ASSIGN expr 
 
-	| INTEGER SPACE EX SPACE string //take symbol from string
+	| INTEGER EX string //take symbol from string
 
-	| REPEAT SPACE operator SPACE WHILE SPACE expr //cycles
+	| REPEAT operator WHILE expr //cycles
 	
-	| IF SPACE expr SPACE THEN SPACE operator SPACE otherwise //if
+	| IF expr THEN operator otherwise //if
 	
 	| BEG listofoperators END //block
 	{
@@ -96,9 +96,9 @@ operator: {}
 	
 	| data //declarations
 
-	| LABEL SPACE ID //make label
+	| LABEL ID //make label
 
-	| GOTO SPACE ID //go to label
+	| GOTO ID //go to label
         ;
 
 otherwise: 
@@ -117,7 +117,6 @@ string : STRLIT
 expr: INTNUM 
 	| STRLIT
 	{
-		// Íåò ó íàñ òàêèõ!!!
 	}
 	| ID
 	| ID DOT ID LBR parameters RBR //call class method
@@ -139,11 +138,9 @@ expr: INTNUM
 	}
 	| expr DIV expr 
 	{
-		// Íå ïîääåðæèâàåòñÿ!
 	}
 	| expr MOD expr 
 	{
-		// Íå ïîääåðæèâàåòñÿ!
 	}
 	| expr AND expr 
 	{
