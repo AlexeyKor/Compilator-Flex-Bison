@@ -1,7 +1,7 @@
 %{
 #include "myCompilator.tab.h"
 %}
-
+%option noyywrap
 Alpha 	[a-zA-Z_]
 INTNUM  [0-9]+
 ID [a-zA-Z_][a-zA-Z0-9_]* 
@@ -50,8 +50,8 @@ ID [a-zA-Z_][a-zA-Z0-9_]*
 
 {ID}  { return ID; }
 
-{INTNUM} { 
-  return INTNUM; 
-}
+{INTNUM} { yylval = atoi(yytext); return INTNUM; }
+
+"#" { return STOP; }
 
 %%    				

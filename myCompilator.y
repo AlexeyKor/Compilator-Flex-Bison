@@ -2,20 +2,15 @@
     #include <cstdio>
     #include <string>
     #include <iostream>
+    #include <stack>
     
     using namespace std;
     //#define YYSTYPE string
     #define YYERROR_VERBOSE 1
     #define DEBUG
     
-    int  wrapRet = 1;
-    
     int yylex(void);
-    extern "C" {
-        int yywrap( void ) {
-            return wrapRet;
-        }
-    }
+    
     void yyerror(const char *str) {
         #ifdef DEBUG
           //cout << "Parser: " << str << endl;
@@ -23,12 +18,16 @@
     }
  
     int main();
+    
+    stack<int> myStack, retAdr;
+    //int result = 0;
+    bool isTempExist = false;
  
 %}
 
 %start progr
 
-%token BEG END IF THEN OTHERWISE REPEAT WHILE WRITE READ
+%token STOP BEG END IF THEN OTHERWISE REPEAT WHILE WRITE READ
 %token ASSIGN SEMICOLON COMMA LBR RBR COLON DOT
 %token PLUS MINUS MULT DIVIDE GOTO LABEL CLASS EX
 %token AND OR NOT LT GT EQ NE LE GE
@@ -43,22 +42,22 @@
 
 %%
 
-progr : class listofoperators
-	| listofoperators class
+/*progr : 
 	| listofoperators
 	;
 
 class : CLASS ID BEG classmembers END
 	;
 
-classmembers : data SEMICOLON classmembers
+classmembers : 
+	|data SEMICOLON classmembers
 	| method SEMICOLON classmembers
 	;
 
 data : ID COMMA data
 	| ID COLON simpletype
 	;
-
+ntf("= %d\n", $2); }
 simpletype : INTEGER
 	| STRING
 	;
@@ -72,9 +71,9 @@ parameters_declaration :
 	;
 
 listofoperators : operator SEMICOLON listofoperators
-	| operator
+	| operator SEMICOLON
 	| class SEMICOLON listofoperators
-	| class
+	| class SEMICOLON
 	;
 
 operator: {}
@@ -101,104 +100,231 @@ operator: {}
 	| GOTO ID //go to label
         ;
 
-otherwise: 
+otherwise: OTHERWISE operator 
 	{
-		//$$ = null;
-	}
-	| OTHERWISE operator {
-		//$$ = $2;
+		//$$ = $1;
 	}
 	;
 
 string : STRLIT	
 	| ID
-	;
+	;*/
+
+progr: expr STOP {
+		printf("%d", $1);
+	    }
 
 expr: INTNUM 
-	| STRLIT
+	{
+		$$ = $1; myStack.push($$); printf("INTEGER a%c %d\n", (char)(myStack.size()+96), myStack.top());
+	}
+	/*| STRLIT
 	{
 	}
 	| ID
-	| ID DOT ID LBR parameters RBR //call class method
+	| ID DOT ID LBR parameters RBR //call class method*/
 	| expr PLUS expr 
 	{
-		//$$ = new BinExpression($1, $3, Op.Plus, @$);
+		$$ = $1 + $3;
+		if(!isTempExist)
+		{
+			puts("INTEGER temp 0\n");
+			isTempExist = !isTempExist;
+		}
+		printf("ADD temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
+		myStack.pop();
+		printf("a%c\n", (char)(myStack.size()+96));
+		myStack.pop();
+		myStack.push($$);
+		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr MINUS expr 
 	{
-		//$$ = new BinExpression($1, $3, Op.Minus, @$);
+		$$ = $1 - $3;
+		if(!isTempExist)
+		{
+			puts("INTEGER temp 0\n");
+			isTempExist = !isTempExist;
+		}
+		printf("SUB temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
+		myStack.pop();
+		printf("a%c\n", (char)(myStack.size()+96));
+		myStack.pop();
+		myStack.push($$);
+		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr MULT expr 
 	{
-		//$$ = new BinExpression($1, $3, Op.Mult, @$);
+		$$ = $1 * $3; 
+		if(!isTempExist)
+		{
+			puts("INTEGER temp 0\n");
+			isTempExist = !isTempExist;
+		}
+		printf("MUL temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
+		myStack.pop();
+		printf("a%c\n", (char)(myStack.size()+96));
+		myStack.pop();
+		myStack.push($$);
+		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr DIVIDE expr 
 	{
-		//$$ = new BinExpression($1, $3, Op.Divide, @$);
-	}
-	| expr DIV expr 
-	{
-	}
-	| expr MOD expr 
-	{
+		$$ = $1 / $3; 
+		if(!isTempExist)
+		{
+			puts("INTEGER temp 0\n");
+			isTempExist = !isTempExist;
+		}
+		printf("DIV temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
+		myStack.pop();
+		printf("a%c\n", (char)(myStack.size()+96));
+		myStack.pop();
+		myStack.push($$);
+		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr AND expr 
 	{
-		/*if ($1.getType() != TipType.BoolType || $2.getType() != TipType.BoolType)
+		$$ = $1 && $3;
+		if(!isTempExist)
 		{
-			// Error: only for bool types
+			puts("INTEGER temp 0\n");
+			isTempExist = !isTempExist;
 		}
-		$$ = new BinExpression($1, $3, Op.And, @$);*/
+		printf("AND temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
+		myStack.pop();
+		printf("a%c\n", (char)(myStack.size()+96));
+		myStack.pop();
+		myStack.push($$);
+		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr OR expr 
 	{
-		/*if ($1.getType() != TipType.BoolType || $2.getType() != TipType.BoolType)
+		$$ = $1 || $3;
+		if(!isTempExist)
 		{
-		    // Error: only for bool types
+			puts("INTEGER temp 0\n");
+			isTempExist = !isTempExist;
 		}
-		$$ = new BinExpression($1, $3, Op.Or, @$);*/
+		printf("OR temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
+		myStack.pop();
+		printf("a%c\n", (char)(myStack.size()+96));
+		myStack.pop();
+		myStack.push($$);
+		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr LT expr 
 	{
-		/*$$ = new BinExpression($1, $3, Op.Less, @$);*/
+		$$ = $1 < $3; 
+		if(!isTempExist)
+		{
+			puts("INTEGER temp 0\n");
+			isTempExist = !isTempExist;
+		}
+		printf("LT temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
+		myStack.pop();
+		printf("a%c\n", (char)(myStack.size()+96));
+		myStack.pop();
+		myStack.push($$);
+		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr GT expr 
 	{
-		//$$ = new BinExpression($1, $3, Op.More, @$);
+		$$ = $1 > $3;
+		if(!isTempExist)
+		{
+			puts("INTEGER temp 0\n");
+			isTempExist = !isTempExist;
+		}
+		printf("GT temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
+		myStack.pop();
+		printf("a%c\n", (char)(myStack.size()+96));
+		myStack.pop();
+		myStack.push($$);
+		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr LE expr	
 	{
-		//$$ = new BinExpression($1, $3, Op.LessEqual, @$);
+		$$ = $1 <= $3; 
+		if(!isTempExist)
+		{
+			puts("INTEGER temp 0\n");
+			isTempExist = !isTempExist;
+		}
+		printf("LE temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
+		myStack.pop();
+		printf("a%c\n", (char)(myStack.size()+96));
+		myStack.pop();
+		myStack.push($$);
+		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr GE expr 
 	{
-		//$$ = new BinExpression($1, $3, Op.MoreEqual, @$);       
+		$$ = $1 >= $3;
+		if(!isTempExist)
+		{
+			puts("INTEGER temp 0\n");
+			isTempExist = !isTempExist;
+		}
+		printf("GE temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
+		myStack.pop();
+		printf("a%c\n", (char)(myStack.size()+96));
+		myStack.pop();
+		myStack.push($$);
+		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr EQ expr
 	{
-		//$$ = new BinExpression($1, $3, Op.Equal, @$);       
+		$$ = $1 == $3;
+		if(!isTempExist)
+		{
+			puts("INTEGER temp 0\n");
+			isTempExist = !isTempExist;
+		}
+		printf("EQ temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
+		myStack.pop();
+		printf("a%c\n", (char)(myStack.size()+96));
+		myStack.pop();
+		myStack.push($$);
+		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr NE expr 
 	{
-		//$$ = new BinExpression($1, $3, Op.NotEqual, @$);        
+		$$ = $1 != $3;
+		if(!isTempExist)
+		{
+			puts("INTEGER temp 0\n");
+			isTempExist = !isTempExist;
+		}
+		printf("NE temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
+		myStack.pop();
+		printf("a%c\n", (char)(myStack.size()+96));
+		myStack.pop();
+		myStack.push($$);
+		printf("MOVE temp a%c\n", (char)(myStack.size()+96));    
 	}
 	| NOT expr 
 	{
-		/*if ($2.getType() != TipType.BoolType)
+		$$ = !$2; 
+		if(!isTempExist)
 		{
-		// Error: type is wrong.
+			puts("INTEGER temp 0\n");
+			isTempExist = !isTempExist;
 		}
-		$$ = new UnarExpression($2, Op.Not, @2);*/
+		printf("NOT temp a%c\n", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
+		myStack.pop();
+		myStack.push($$);
+		printf("MOVE temp a%c\n", (char)(myStack.size()+96));    
 	}
 	| LBR expr RBR
 	{
-		//$$ = $2;
+		$$ = $2;
 	}
 	;
 
-parameters : ID
+/*parameters : ID
 	| ID COMMA parameters
-	;
+	;*/
 %%
 
 int main()
