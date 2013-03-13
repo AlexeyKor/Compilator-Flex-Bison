@@ -3,9 +3,10 @@
     #include <string>
     #include <iostream>
     #include <stack>
+    #include <vector>
     
     using namespace std;
-    //#define YYSTYPE string
+    #define YYSTYPE string
     #define YYERROR_VERBOSE 1
     #define DEBUG
     
@@ -18,7 +19,15 @@
     }
  
     int main();
-    
+	bool isVarExist(string var);
+
+	struct variable
+	{
+		string name;
+		int value;
+	};
+
+    vector<string> myVariables;    
     stack<int> myStack, retAdr;
     //int result = 0;
     bool isTempExist = false;
@@ -27,7 +36,7 @@
 
 %start progr
 
-%token STOP BEG END IF THEN OTHERWISE REPEAT WHILE WRITE READ
+%token BEG END IF THEN OTHERWISE REPEAT WHILE WRITE READ
 %token ASSIGN SEMICOLON COMMA LBR RBR COLON DOT
 %token PLUS MINUS MULT DIVIDE GOTO LABEL CLASS EX
 %token AND OR NOT LT GT EQ NE LE GE
@@ -42,42 +51,69 @@
 
 %%
 
-/*progr : 
+progr : 
 	| listofoperators
 	;
 
-class : CLASS ID BEG classmembers END
+/*class : CLASS ID BEG classmembers END
 	;
 
 classmembers : 
 	|data SEMICOLON classmembers
 	| method SEMICOLON classmembers
-	;
+	;*/
 
 data : ID COMMA data
+	{
+		myVariables.push_back($1);
+		if($3 == "string")		
+			printf("STRING %s nothing\n", $1.c_str());
+		else
+			printf("INTEGER %s 0\n", $1.c_str()); 
+	}
 	| ID COLON simpletype
-	;
-ntf("= %d\n", $2); }
-simpletype : INTEGER
-	| STRING
+	{
+		$$ = $3;
+		myVariables.push_back($1);
+		if($3 == "string")		
+			printf("STRING %s nothing\n", $1.c_str());
+		else
+			printf("INTEGER %s 0\n", $1.c_str()); 
+	}
 	;
 
-method : ID COLON simpletype LBR parameters_declaration RBR BEG listofoperators END
+simpletype : INTEGER
+	{
+		$$ = $1;
+	}
+	| STRING	
+	{
+		$$ = $1;
+	}
+	;
+
+/*method : ID COLON simpletype LBR parameters_declaration RBR BEG listofoperators END
 	;
 
 parameters_declaration : 
 	|data COMMA parameters
 	| data
 	;
-
+*/
 listofoperators : operator SEMICOLON listofoperators
 	| operator SEMICOLON
-	| class SEMICOLON listofoperators
-	| class SEMICOLON
+	/*| class SEMICOLON listofoperators
+	| class SEMICOLON*/
 	;
 
 operator: {}
-	| ID ASSIGN expr 
+	| ID ASSIGN expr
+	{
+		//if(!isVarExist($1))
+			myVariables.push_back($1);
+		printf("MOVE aa %s\n", myVariables.back().c_str());
+		myStack.pop();
+	} 
 
 	| INTEGER EX string //take symbol from string
 
@@ -108,15 +144,12 @@ otherwise: OTHERWISE operator
 
 string : STRLIT	
 	| ID
-	;*/
-
-progr: expr STOP {
-		printf("%d", $1);
-	    }
+	;
 
 expr: INTNUM 
 	{
-		$$ = $1; myStack.push($$); printf("INTEGER a%c %d\n", (char)(myStack.size()+96), myStack.top());
+		//$$ = $1; 
+		myStack.push(atoi($$.c_str())); printf("INTEGER a%c %d\n", (char)(myStack.size()+96), myStack.top());
 	}
 	/*| STRLIT
 	{
@@ -125,7 +158,7 @@ expr: INTNUM
 	| ID DOT ID LBR parameters RBR //call class method*/
 	| expr PLUS expr 
 	{
-		$$ = $1 + $3;
+		//$$ = $1 + $3;
 		if(!isTempExist)
 		{
 			puts("INTEGER temp 0\n");
@@ -135,12 +168,12 @@ expr: INTNUM
 		myStack.pop();
 		printf("a%c\n", (char)(myStack.size()+96));
 		myStack.pop();
-		myStack.push($$);
+		myStack.push(1);
 		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr MINUS expr 
 	{
-		$$ = $1 - $3;
+		//$$ = $1 - $3;
 		if(!isTempExist)
 		{
 			puts("INTEGER temp 0\n");
@@ -150,12 +183,12 @@ expr: INTNUM
 		myStack.pop();
 		printf("a%c\n", (char)(myStack.size()+96));
 		myStack.pop();
-		myStack.push($$);
+		myStack.push(1);
 		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr MULT expr 
 	{
-		$$ = $1 * $3; 
+		//$$ = $1 * $3; 
 		if(!isTempExist)
 		{
 			puts("INTEGER temp 0\n");
@@ -165,12 +198,12 @@ expr: INTNUM
 		myStack.pop();
 		printf("a%c\n", (char)(myStack.size()+96));
 		myStack.pop();
-		myStack.push($$);
+		myStack.push(1);
 		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr DIVIDE expr 
 	{
-		$$ = $1 / $3; 
+		//$$ = $1 / $3; 
 		if(!isTempExist)
 		{
 			puts("INTEGER temp 0\n");
@@ -180,12 +213,12 @@ expr: INTNUM
 		myStack.pop();
 		printf("a%c\n", (char)(myStack.size()+96));
 		myStack.pop();
-		myStack.push($$);
+		myStack.push(1);
 		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr AND expr 
 	{
-		$$ = $1 && $3;
+		//$$ = $1 && $3;
 		if(!isTempExist)
 		{
 			puts("INTEGER temp 0\n");
@@ -195,12 +228,12 @@ expr: INTNUM
 		myStack.pop();
 		printf("a%c\n", (char)(myStack.size()+96));
 		myStack.pop();
-		myStack.push($$);
+		myStack.push(1);
 		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr OR expr 
 	{
-		$$ = $1 || $3;
+		//$$ = $1 || $3;
 		if(!isTempExist)
 		{
 			puts("INTEGER temp 0\n");
@@ -210,12 +243,12 @@ expr: INTNUM
 		myStack.pop();
 		printf("a%c\n", (char)(myStack.size()+96));
 		myStack.pop();
-		myStack.push($$);
+		myStack.push(1);
 		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr LT expr 
 	{
-		$$ = $1 < $3; 
+		//$$ = $1 < $3; 
 		if(!isTempExist)
 		{
 			puts("INTEGER temp 0\n");
@@ -225,12 +258,12 @@ expr: INTNUM
 		myStack.pop();
 		printf("a%c\n", (char)(myStack.size()+96));
 		myStack.pop();
-		myStack.push($$);
+		myStack.push(1);
 		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr GT expr 
 	{
-		$$ = $1 > $3;
+		//$$ = $1 > $3;
 		if(!isTempExist)
 		{
 			puts("INTEGER temp 0\n");
@@ -240,12 +273,12 @@ expr: INTNUM
 		myStack.pop();
 		printf("a%c\n", (char)(myStack.size()+96));
 		myStack.pop();
-		myStack.push($$);
+		myStack.push(1);
 		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr LE expr	
 	{
-		$$ = $1 <= $3; 
+		//$$ = $1 <= $3; 
 		if(!isTempExist)
 		{
 			puts("INTEGER temp 0\n");
@@ -255,12 +288,12 @@ expr: INTNUM
 		myStack.pop();
 		printf("a%c\n", (char)(myStack.size()+96));
 		myStack.pop();
-		myStack.push($$);
+		myStack.push(1);
 		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr GE expr 
 	{
-		$$ = $1 >= $3;
+		//$$ = $1 >= $3;
 		if(!isTempExist)
 		{
 			puts("INTEGER temp 0\n");
@@ -270,12 +303,12 @@ expr: INTNUM
 		myStack.pop();
 		printf("a%c\n", (char)(myStack.size()+96));
 		myStack.pop();
-		myStack.push($$);
+		myStack.push(1);
 		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr EQ expr
 	{
-		$$ = $1 == $3;
+		//$$ = $1 == $3;
 		if(!isTempExist)
 		{
 			puts("INTEGER temp 0\n");
@@ -285,12 +318,12 @@ expr: INTNUM
 		myStack.pop();
 		printf("a%c\n", (char)(myStack.size()+96));
 		myStack.pop();
-		myStack.push($$);
+		myStack.push(1);
 		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
 	}
 	| expr NE expr 
 	{
-		$$ = $1 != $3;
+		//$$ = $1 != $3;
 		if(!isTempExist)
 		{
 			puts("INTEGER temp 0\n");
@@ -300,12 +333,12 @@ expr: INTNUM
 		myStack.pop();
 		printf("a%c\n", (char)(myStack.size()+96));
 		myStack.pop();
-		myStack.push($$);
+		myStack.push(1);
 		printf("MOVE temp a%c\n", (char)(myStack.size()+96));    
 	}
 	| NOT expr 
 	{
-		$$ = !$2; 
+		//$$ = !$2; 
 		if(!isTempExist)
 		{
 			puts("INTEGER temp 0\n");
@@ -313,12 +346,12 @@ expr: INTNUM
 		}
 		printf("NOT temp a%c\n", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
 		myStack.pop();
-		myStack.push($$);
+		myStack.push(1);
 		printf("MOVE temp a%c\n", (char)(myStack.size()+96));    
 	}
 	| LBR expr RBR
 	{
-		$$ = $2;
+		//$$ = $2;
 	}
 	;
 
@@ -330,4 +363,12 @@ expr: INTNUM
 int main()
 {
     return yyparse();
+}
+
+bool isVarExist(string var)
+{
+	for(int i = 0; i < myVariables.size(); i++)
+		if(var == myVariables[i])
+			return true;
+	return false;
 }

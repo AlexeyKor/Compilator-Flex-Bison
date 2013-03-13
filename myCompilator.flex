@@ -1,8 +1,13 @@
 %{
+#include <string>
+#include <iostream>
+ 
+using namespace std;
+ 
+#define YYSTYPE string
 #include "myCompilator.tab.h"
 %}
 %option noyywrap
-Alpha 	[a-zA-Z_]
 INTNUM  [0-9]+
 ID [a-zA-Z_][a-zA-Z0-9_]* 
 
@@ -31,7 +36,8 @@ ID [a-zA-Z_][a-zA-Z0-9_]*
   return STRLIT;
 }
 
-"integer" { return INTEGER; }
+"integer" { yylval = yytext; return INTEGER; }
+"string" { yylval = yytext; return STRING; }
 "begin" { return BEG; }
 "end" { return END; }
 "if" { return IF; }
@@ -48,10 +54,8 @@ ID [a-zA-Z_][a-zA-Z0-9_]*
 "label" { return LABEL; }
 "goto" { return GOTO; }
 
-{ID}  { return ID; }
+{ID}  { yylval = yytext; return ID; }
 
-{INTNUM} { yylval = atoi(yytext); return INTNUM; }
-
-"#" { return STOP; }
+{INTNUM} { yylval = yytext; return INTNUM; }
 
 %%    				
