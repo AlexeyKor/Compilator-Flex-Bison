@@ -20,6 +20,7 @@
  
     int main();
 	bool isVarExist(string var);
+	int expression(string operation);
 
 	struct variable
 	{
@@ -28,9 +29,11 @@
 	};
 
     vector<string> myVariables;    
-    stack<int> myStack, retAdr;
+    stack<string> myStack, retAdr;
+	vector<bool> importantVar;
     //int result = 0;
-    bool isTempExist = false;
+    bool isTempExist = false, isStrTempExist = false, isStrTemp = false;
+	int currentAlpha = 97;
  
 %}
 
@@ -109,10 +112,19 @@ listofoperators : operator SEMICOLON listofoperators
 operator: {}
 	| ID ASSIGN expr
 	{
+		$$ = $1;		
 		//if(!isVarExist($1))
 			myVariables.push_back($1);
-		printf("MOVE aa %s\n", myVariables.back().c_str());
-		myStack.pop();
+		for(int i = 0; i < myStack.size(); i++)
+			if(importantVar.at(myStack.size()-i-1))
+			{
+				printf("MOVE %c%c %s\n", (char)currentAlpha, (char)(myStack.size()+96-i), myVariables.back().c_str());
+				break;
+			}
+		while(myStack.size() != 0)
+			myStack.pop();
+		importantVar.clear();
+		currentAlpha++;
 	} 
 
 	| INTEGER EX string //take symbol from string
@@ -148,206 +160,82 @@ string : STRLIT
 
 expr: INTNUM 
 	{
-		//$$ = $1; 
-		myStack.push(atoi($$.c_str())); printf("INTEGER a%c %d\n", (char)(myStack.size()+96), myStack.top());
+		//$$ = $1;
+		myStack.push($$); importantVar.push_back(true); isStrTemp = false; printf("INTEGER %c%c %s\n", (char)currentAlpha, (char)(myStack.size()+96), myStack.top().c_str());
 	}
-	/*| STRLIT
+	| STRLIT
 	{
+		myStack.push($$); importantVar.push_back(true); isStrTemp = true; printf("STRING %c%c %s\n", (char)currentAlpha, (char)(myStack.size()+96), myStack.top().c_str());
 	}
 	| ID
-	| ID DOT ID LBR parameters RBR //call class method*/
+	{
+		myStack.push($$); importantVar.push_back(true); printf("MOVE %s %c%c\n", myStack.top().c_str(), (char)currentAlpha, (char)(myStack.size()+96));
+	}
+	//| ID DOT ID LBR parameters RBR //call class method
 	| expr PLUS expr 
 	{
 		//$$ = $1 + $3;
-		if(!isTempExist)
-		{
-			puts("INTEGER temp 0\n");
-			isTempExist = !isTempExist;
-		}
-		printf("ADD temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
-		myStack.pop();
-		printf("a%c\n", (char)(myStack.size()+96));
-		myStack.pop();
-		myStack.push(1);
-		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
+		expression("ADD");
 	}
 	| expr MINUS expr 
 	{
 		//$$ = $1 - $3;
-		if(!isTempExist)
-		{
-			puts("INTEGER temp 0\n");
-			isTempExist = !isTempExist;
-		}
-		printf("SUB temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
-		myStack.pop();
-		printf("a%c\n", (char)(myStack.size()+96));
-		myStack.pop();
-		myStack.push(1);
-		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
+		expression("SUB");
 	}
 	| expr MULT expr 
 	{
 		//$$ = $1 * $3; 
-		if(!isTempExist)
-		{
-			puts("INTEGER temp 0\n");
-			isTempExist = !isTempExist;
-		}
-		printf("MUL temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
-		myStack.pop();
-		printf("a%c\n", (char)(myStack.size()+96));
-		myStack.pop();
-		myStack.push(1);
-		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
+		expression("MUL");
 	}
 	| expr DIVIDE expr 
 	{
 		//$$ = $1 / $3; 
-		if(!isTempExist)
-		{
-			puts("INTEGER temp 0\n");
-			isTempExist = !isTempExist;
-		}
-		printf("DIV temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
-		myStack.pop();
-		printf("a%c\n", (char)(myStack.size()+96));
-		myStack.pop();
-		myStack.push(1);
-		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
+		expression("DIV");
 	}
 	| expr AND expr 
 	{
 		//$$ = $1 && $3;
-		if(!isTempExist)
-		{
-			puts("INTEGER temp 0\n");
-			isTempExist = !isTempExist;
-		}
-		printf("AND temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
-		myStack.pop();
-		printf("a%c\n", (char)(myStack.size()+96));
-		myStack.pop();
-		myStack.push(1);
-		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
+		expression("AND");
 	}
 	| expr OR expr 
 	{
 		//$$ = $1 || $3;
-		if(!isTempExist)
-		{
-			puts("INTEGER temp 0\n");
-			isTempExist = !isTempExist;
-		}
-		printf("OR temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
-		myStack.pop();
-		printf("a%c\n", (char)(myStack.size()+96));
-		myStack.pop();
-		myStack.push(1);
-		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
+		expression("OR");
 	}
 	| expr LT expr 
 	{
 		//$$ = $1 < $3; 
-		if(!isTempExist)
-		{
-			puts("INTEGER temp 0\n");
-			isTempExist = !isTempExist;
-		}
-		printf("LT temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
-		myStack.pop();
-		printf("a%c\n", (char)(myStack.size()+96));
-		myStack.pop();
-		myStack.push(1);
-		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
+		expression("LT");
 	}
 	| expr GT expr 
 	{
 		//$$ = $1 > $3;
-		if(!isTempExist)
-		{
-			puts("INTEGER temp 0\n");
-			isTempExist = !isTempExist;
-		}
-		printf("GT temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
-		myStack.pop();
-		printf("a%c\n", (char)(myStack.size()+96));
-		myStack.pop();
-		myStack.push(1);
-		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
+		expression("GT");
 	}
 	| expr LE expr	
 	{
 		//$$ = $1 <= $3; 
-		if(!isTempExist)
-		{
-			puts("INTEGER temp 0\n");
-			isTempExist = !isTempExist;
-		}
-		printf("LE temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
-		myStack.pop();
-		printf("a%c\n", (char)(myStack.size()+96));
-		myStack.pop();
-		myStack.push(1);
-		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
+		expression("LE");
 	}
 	| expr GE expr 
 	{
 		//$$ = $1 >= $3;
-		if(!isTempExist)
-		{
-			puts("INTEGER temp 0\n");
-			isTempExist = !isTempExist;
-		}
-		printf("GE temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
-		myStack.pop();
-		printf("a%c\n", (char)(myStack.size()+96));
-		myStack.pop();
-		myStack.push(1);
-		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
+		expression("GE");
 	}
 	| expr EQ expr
 	{
 		//$$ = $1 == $3;
-		if(!isTempExist)
-		{
-			puts("INTEGER temp 0\n");
-			isTempExist = !isTempExist;
-		}
-		printf("EQ temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
-		myStack.pop();
-		printf("a%c\n", (char)(myStack.size()+96));
-		myStack.pop();
-		myStack.push(1);
-		printf("MOVE temp a%c\n", (char)(myStack.size()+96));
+		expression("EQ");
 	}
 	| expr NE expr 
 	{
 		//$$ = $1 != $3;
-		if(!isTempExist)
-		{
-			puts("INTEGER temp 0\n");
-			isTempExist = !isTempExist;
-		}
-		printf("NE temp a%c ", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
-		myStack.pop();
-		printf("a%c\n", (char)(myStack.size()+96));
-		myStack.pop();
-		myStack.push(1);
-		printf("MOVE temp a%c\n", (char)(myStack.size()+96));    
+		expression("NE");   
 	}
 	| NOT expr 
 	{
 		//$$ = !$2; 
-		if(!isTempExist)
-		{
-			puts("INTEGER temp 0\n");
-			isTempExist = !isTempExist;
-		}
-		printf("NOT temp a%c\n", (char)(myStack.size()+96), (char)(myStack.size()+96), (char)(myStack.size()+96));
-		myStack.pop();
-		myStack.push(1);
-		printf("MOVE temp a%c\n", (char)(myStack.size()+96));    
+		expression("NOT");
 	}
 	| LBR expr RBR
 	{
@@ -371,4 +259,50 @@ bool isVarExist(string var)
 		if(var == myVariables[i])
 			return true;
 	return false;
+}
+
+int expression(string operation)
+{
+	if(!isTempExist)
+		{
+			puts("INTEGER temp 0\n");
+			isTempExist = !isTempExist;
+		}
+	if(!isStrTempExist)
+		{
+			puts("STRING strTemp nothing\n");
+			isStrTempExist = !isStrTempExist;
+		}
+	for(int i = 0; i < myStack.size(); i++)
+		if(importantVar.at(myStack.size()-i-1))
+		{
+			if(isStrTemp)
+				printf("%s strTemp %c%c ", operation.c_str(), (char)currentAlpha, (char)(myStack.size()+96-i));
+			else
+				printf("%s temp %c%c ", operation.c_str(), (char)currentAlpha, (char)(myStack.size()+96-i));
+			if(operation != "NOT")
+				importantVar.at(myStack.size()-i-1) = false;
+			break;
+		}
+	if(operation != "NOT")	
+	{
+		for(int i = 0; i < myStack.size(); i++)		
+			if(importantVar.at(myStack.size()-i-1))
+			{
+				printf("%c%c\n", (char)currentAlpha, (char)(myStack.size()+96-i));
+				break;
+			}
+	}
+	else
+		puts("\n");
+	for(int i = 0; i < myStack.size(); i++)
+		if(importantVar.at(myStack.size()-i-1))
+		{
+			if(isStrTemp)
+				printf("MOVE strTemp %c%c\n", (char)currentAlpha, (char)(myStack.size()+96-i));
+			else
+				printf("MOVE temp %c%c\n", (char)currentAlpha, (char)(myStack.size()+96-i));
+			break;
+		}
+	return 0;
 }
