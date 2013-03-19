@@ -47,6 +47,7 @@ ID [a-zA-Z_][a-zA-Z0-9_]*
 "repeat" { return REPEAT; }
 "while" { return WHILE; }
 "read" { return READ; }
+"write" { return WRITE; }
 "and" { return AND; }
 "or" { return OR; }
 "not" { return NOT; }

@@ -20,7 +20,7 @@
  
     int main();
 	bool isVarExist(string var);
-	int expression(string operation);
+	int expression(string operation); //generates code for expressions
 
 	struct variable
 	{
@@ -29,11 +29,13 @@
 	};
 
     vector<string> myVariables;    
-    stack<string> myStack, retAdr;
-	vector<bool> importantVar;
+    stack<string> myStack, retAdr; //myStack is for expression calculation
+	vector<bool> importantVar; //importantVar shows if variable is temporary expression result
+	vector<string>  myLabels;
     //int result = 0;
-    bool isTempExist = false, isStrTempExist = false, isStrTemp = false;
-	int currentAlpha = 97;
+    bool isTempExist = false, isStrTempExist = false, isStrTemp = false; // for expressions
+	int currentAlpha = 97; //for generating unique variables.
+    string curStr;
  
 %}
 
@@ -49,7 +51,7 @@
 
 %left LT GT LE GE EQ NE
 %left MINUS PLUS OR
-%left MULT DIVIDE AND DIV MOD
+%left MULT DIVIDE AND
 %left NOT
 
 %%
@@ -138,14 +140,38 @@ operator: {}
 		//$$ = $2;
 	}
 	| WRITE LBR expr RBR //write
-	
+	{
+		for(int i = 0; i < myStack.size(); i++)
+			if(importantVar.at(myStack.size()-i-1))
+			{
+				printf("WRITE %c%c\n", (char)currentAlpha, (char)(myStack.size()+96-i));
+				break;
+			}
+		while(myStack.size() != 0)
+			myStack.pop();
+		importantVar.clear();
+		currentAlpha++;
+	}
 	| READ LBR ID RBR //read
-	
+	{
+		printf("READ %s\n", $3.c_str());
+	}
 	| data //declarations
 
 	| LABEL ID //make label
-
+	{
+		printf("LABEL %s\n STRING label%d %s\n", $2.c_str(), myLabels.size(), $2.c_str());
+		myLabels.push_back($2);
+	}
 	| GOTO ID //go to label
+	{
+		for(int i = 0; i < myLabels.size(); i++)
+			if($2 == myLabels.at(i))
+			{
+				printf("GOTO label%d\n", i);
+				break;
+			} 
+	}
         ;
 
 otherwise: OTHERWISE operator 
@@ -161,15 +187,26 @@ string : STRLIT
 expr: INTNUM 
 	{
 		//$$ = $1;
-		myStack.push($$); importantVar.push_back(true); isStrTemp = false; printf("INTEGER %c%c %s\n", (char)currentAlpha, (char)(myStack.size()+96), myStack.top().c_str());
+		myStack.push($$); 
+		importantVar.push_back(true); 
+		isStrTemp = false; 
+		printf("INTEGER %c%c %s\n", (char)currentAlpha, (char)(myStack.size()+96), myStack.top().c_str());
 	}
 	| STRLIT
 	{
-		myStack.push($$); importantVar.push_back(true); isStrTemp = true; printf("STRING %c%c %s\n", (char)currentAlpha, (char)(myStack.size()+96), myStack.top().c_str());
+		curStr = $$; 
+		curStr.erase(curStr.begin()-1); 
+		curStr.erase(curStr.end()-1); 
+		myStack.push(curStr); 
+		importantVar.push_back(true); 
+		isStrTemp = true; 
+		printf("STRING %c%c %s\n", (char)currentAlpha, (char)(myStack.size()+96), myStack.top().c_str());
 	}
 	| ID
 	{
-		myStack.push($$); importantVar.push_back(true); printf("MOVE %s %c%c\n", myStack.top().c_str(), (char)currentAlpha, (char)(myStack.size()+96));
+		myStack.push($$);
+	 	importantVar.push_back(true); 
+		printf("MOVE %s %c%c\n", myStack.top().c_str(), (char)currentAlpha, (char)(myStack.size()+96));
 	}
 	//| ID DOT ID LBR parameters RBR //call class method
 	| expr PLUS expr 
@@ -268,11 +305,14 @@ int expression(string operation)
 			puts("INTEGER temp 0\n");
 			isTempExist = !isTempExist;
 		}
+
 	if(!isStrTempExist)
 		{
 			puts("STRING strTemp nothing\n");
 			isStrTempExist = !isStrTempExist;
 		}
+
+
 	for(int i = 0; i < myStack.size(); i++)
 		if(importantVar.at(myStack.size()-i-1))
 		{
@@ -284,6 +324,8 @@ int expression(string operation)
 				importantVar.at(myStack.size()-i-1) = false;
 			break;
 		}
+
+
 	if(operation != "NOT")	
 	{
 		for(int i = 0; i < myStack.size(); i++)		
@@ -295,6 +337,8 @@ int expression(string operation)
 	}
 	else
 		puts("\n");
+
+
 	for(int i = 0; i < myStack.size(); i++)
 		if(importantVar.at(myStack.size()-i-1))
 		{
@@ -304,5 +348,6 @@ int expression(string operation)
 				printf("MOVE temp %c%c\n", (char)currentAlpha, (char)(myStack.size()+96-i));
 			break;
 		}
+
 	return 0;
 }
