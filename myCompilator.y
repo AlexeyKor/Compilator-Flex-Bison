@@ -27,7 +27,7 @@
 		string name;
 		int value;
 	};
-
+	
     vector<string> myVariables;    
     stack<string> myStack, retAdr; //myStack is for expression calculation
 	vector<bool> importantVar; //importantVar shows if variable is temporary expression result
@@ -35,8 +35,7 @@
     //int result = 0;
     bool isTempExist = false, isStrTempExist = false, isStrTemp = false; // for expressions
 	int currentAlpha = 97; //for generating unique variables.
-    string curStr;
- 
+	int myIfCounter = 0, myIfInc = 0, myIfLevel = 0, myRepeatCounter = 0, myRepeat2Counter = 0, myCycleInc = 0; 
 %}
 
 %start progr
@@ -106,13 +105,12 @@ parameters_declaration :
 	;
 */
 listofoperators : operator SEMICOLON listofoperators
-	| operator SEMICOLON
+	| operator
 	/*| class SEMICOLON listofoperators
 	| class SEMICOLON*/
 	;
 
-operator: {}
-	| ID ASSIGN expr
+operator: ID ASSIGN expr
 	{
 		$$ = $1;		
 		//if(!isVarExist($1))
@@ -129,16 +127,72 @@ operator: {}
 		currentAlpha++;
 	} 
 
-	| INTEGER EX string //take symbol from string
-
-	| REPEAT operator WHILE expr //cycles
+	| REPEAT 
+	{
+		printf("STRING repeat%d repeat%d\n LABEL repeat%d\n", myRepeatCounter, myRepeatCounter, myRepeatCounter);
+		myRepeatCounter++;		
+	}
 	
-	| IF expr THEN operator otherwise //if
+	operator WHILE expr
+	{
+		for(int i = 0; i < myStack.size(); i++)
+			if(importantVar.at(myStack.size()-i-1))
+			{
+				printf("BRANCH %c%c repeat%d\n", (char)currentAlpha, (char)(myStack.size()+96-i), myRepeat2Counter);
+				break;
+			}
+		myRepeat2Counter++;
+		while(myStack.size() != 0)
+			myStack.pop();
+		importantVar.clear();
+		currentAlpha++;
+	}	
+	| IF expr
+	{
+		myIfLevel++;
+		myIfInc++;
+		printf("STRING else%d else%d\n", myIfCounter + myIfLevel, myIfCounter + myIfLevel);
+		printf("STRING if%dend if%dend\n", myIfCounter + myIfLevel, myIfCounter + myIfLevel);
+		for(int i = 0; i < myStack.size(); i++)
+			if(importantVar.at(myStack.size()-i-1))
+			{
+				printf("NOT %c%c %c%c\n", (char)currentAlpha, (char)(myStack.size()+96-i), (char)currentAlpha, (char)(myStack.size()+96-i));				
+				printf("BRANCH %c%c else%d\n", (char)currentAlpha, (char)(myStack.size()+96-i), myIfCounter + myIfLevel);
+				break;
+			}
+		while(myStack.size() != 0)
+			myStack.pop();
+		importantVar.clear();
+		currentAlpha++;
+	}
+
+	THEN operator
+	{
+		printf("GOTO if%dend\n", myIfCounter + myIfLevel);
+	}
+	
+	OTHERWISE
+	{
+		printf("LABEL else%d\n", myIfCounter + myIfLevel);
+	}	
+  	
+	operator
+	{
+		printf("label if%dend\n", myIfCounter + myIfLevel);
+		
+		if(myIfLevel == 1)
+		{
+			myIfCounter = myIfCounter + myIfInc; 
+			myIfInc = 0;
+		}		
+		myIfLevel--;		
+	}
 	
 	| BEG listofoperators END //block
 	{
 		//$$ = $2;
 	}
+
 	| WRITE LBR expr RBR //write
 	{
 		for(int i = 0; i < myStack.size(); i++)
@@ -152,10 +206,12 @@ operator: {}
 		importantVar.clear();
 		currentAlpha++;
 	}
+
 	| READ LBR ID RBR //read
 	{
 		printf("READ %s\n", $3.c_str());
 	}
+
 	| data //declarations
 
 	| LABEL ID //make label
@@ -163,6 +219,7 @@ operator: {}
 		printf("LABEL %s\n STRING label%d %s\n", $2.c_str(), myLabels.size(), $2.c_str());
 		myLabels.push_back($2);
 	}
+
 	| GOTO ID //go to label
 	{
 		for(int i = 0; i < myLabels.size(); i++)
@@ -174,39 +231,38 @@ operator: {}
 	}
         ;
 
-otherwise: OTHERWISE operator 
-	{
-		//$$ = $1;
-	}
-	;
-
-string : STRLIT	
-	| ID
-	;
-
 expr: INTNUM 
 	{
 		//$$ = $1;
-		myStack.push($$); 
+		myStack.push($1); 
 		importantVar.push_back(true); 
 		isStrTemp = false; 
 		printf("INTEGER %c%c %s\n", (char)currentAlpha, (char)(myStack.size()+96), myStack.top().c_str());
 	}
+
 	| STRLIT
 	{
-		curStr = $$; 
-		curStr.erase(curStr.begin()-1); 
-		curStr.erase(curStr.end()-1); 
-		myStack.push(curStr); 
+		$1.erase($1.begin()-1); 
+		$1.erase($1.end()-1); 
+		myStack.push($1); 
 		importantVar.push_back(true); 
 		isStrTemp = true; 
 		printf("STRING %c%c %s\n", (char)currentAlpha, (char)(myStack.size()+96), myStack.top().c_str());
 	}
-	| ID
+
+	| ID //добавить распознавание типа
 	{
-		myStack.push($$);
+		myStack.push($1);
 	 	importantVar.push_back(true); 
 		printf("MOVE %s %c%c\n", myStack.top().c_str(), (char)currentAlpha, (char)(myStack.size()+96));
+	}
+
+	| INTNUM EX string //take symbol from string
+	{
+		myStack.push($1); 
+		importantVar.push_back(false);
+		printf("INTEGER %c%c %s\n", (char)currentAlpha, (char)(myStack.size()+96), myStack.top().c_str());
+		printf("IND %c%c %c%c %c%c\n", (char)currentAlpha, (char)(myStack.size()+95), (char)currentAlpha, (char)(myStack.size()+96), (char)currentAlpha, (char)(myStack.size()+95));
 	}
 	//| ID DOT ID LBR parameters RBR //call class method
 	| expr PLUS expr 
@@ -277,6 +333,24 @@ expr: INTNUM
 	| LBR expr RBR
 	{
 		//$$ = $2;
+	}
+	;
+
+string : STRLIT
+	{
+		$1.erase($1.begin()-1); 
+		$1.erase($1.end()-1);
+		myStack.push($1); 
+		importantVar.push_back(true); 
+		isStrTemp = true; 
+		printf("STRING %c%c %s\n", (char)currentAlpha, (char)(myStack.size()+96), myStack.top().c_str());
+	}
+	| ID
+	{
+		myStack.push($1);
+	 	importantVar.push_back(true); 
+		isStrTemp = true;
+		printf("MOVE %s %c%c\n", myStack.top().c_str(), (char)currentAlpha, (char)(myStack.size()+96));
 	}
 	;
 
