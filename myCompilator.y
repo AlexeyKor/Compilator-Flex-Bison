@@ -1,7 +1,7 @@
 %{    
-    #include <cstdio>
     #include <string>
     #include <iostream>
+	#include <sstream>
     #include <stack>
     #include <vector>
     
@@ -9,6 +9,8 @@
     #define YYSTYPE string
     #define YYERROR_VERBOSE 1
     #define DEBUG
+
+	ostringstream myCode;
     
     int yylex(void);
     
@@ -18,8 +20,9 @@
         #endif
     }
  
-    int main();
-	bool isVarExist(string var);
+	int main();
+	string isVarExist(string var);
+	int varQuantity(string var);
 	int expression(string operation); //generates code for expressions
 
 	struct variable
@@ -28,7 +31,7 @@
 		int value;
 	};
 	
-    vector<string> myVariables;    
+    vector<string> myVariables, myVarTypes;    
     stack<string> myStack, retAdr; //myStack is for expression calculation
 	vector<bool> importantVar; //importantVar shows if variable is temporary expression result
 	vector<string>  myLabels;
@@ -57,6 +60,8 @@
 
 progr : 
 	| listofoperators
+	{
+	}
 	;
 
 /*class : CLASS ID BEG classmembers END
@@ -69,20 +74,35 @@ classmembers :
 
 data : ID COMMA data
 	{
-		myVariables.push_back($1);
-		if($3 == "string")		
-			printf("STRING %s nothing\n", $1.c_str());
+		$$ = $3;
+		if($3 == "string")
+		{
+			cout << "STRING " << $1 << varQuantity($1) << " nothing\n";
+			myVariables.push_back($1);
+			myVarTypes.push_back("string");	
+		}
 		else
-			printf("INTEGER %s 0\n", $1.c_str()); 
+		{
+			cout << "INTEGER " << $1 << varQuantity($1) << " 0\n";
+			myVariables.push_back($1);
+			myVarTypes.push_back("integer");	
+		} 
 	}
 	| ID COLON simpletype
 	{
 		$$ = $3;
-		myVariables.push_back($1);
-		if($3 == "string")		
-			printf("STRING %s nothing\n", $1.c_str());
+		if($3 == "string")
+		{
+			cout << "STRING " << $1 << varQuantity($1) << " nothing\n";
+			myVariables.push_back($1);
+			myVarTypes.push_back("string");		
+		}
 		else
-			printf("INTEGER %s 0\n", $1.c_str()); 
+		{
+			cout << "INTEGER " << $1 << varQuantity($1) << " 0\n";
+			myVariables.push_back($1);
+			myVarTypes.push_back("integer");
+		}
 	}
 	;
 
@@ -112,13 +132,11 @@ listofoperators : operator SEMICOLON listofoperators
 
 operator: ID ASSIGN expr
 	{
-		$$ = $1;		
-		//if(!isVarExist($1))
-			myVariables.push_back($1);
+		$$ = $1;
 		for(int i = 0; i < myStack.size(); i++)
 			if(importantVar.at(myStack.size()-i-1))
 			{
-				printf("MOVE %c%c %s\n", (char)currentAlpha, (char)(myStack.size()+96-i), myVariables.back().c_str());
+				myCode << "MOVE " << (char)currentAlpha << (char)(myStack.size()+96-i) << " " << $1 << varQuantity($1) << "\n";
 				break;
 			}
 		while(myStack.size() != 0)
@@ -129,7 +147,8 @@ operator: ID ASSIGN expr
 
 	| REPEAT 
 	{
-		printf("STRING repeat%d repeat%d\n LABEL repeat%d\n", myRepeatCounter, myRepeatCounter, myRepeatCounter);
+		cout << "STRING repeat" << myRepeatCounter << " repeat" << myRepeatCounter << "\n";
+		myCode << "LABEL repeat" << myRepeatCounter << "\n";
 		myRepeatCounter++;		
 	}
 	
@@ -138,7 +157,7 @@ operator: ID ASSIGN expr
 		for(int i = 0; i < myStack.size(); i++)
 			if(importantVar.at(myStack.size()-i-1))
 			{
-				printf("BRANCH %c%c repeat%d\n", (char)currentAlpha, (char)(myStack.size()+96-i), myRepeat2Counter);
+				myCode << "BRANCH " << (char)currentAlpha << (char)(myStack.size()+96-i) << " repeat" << myRepeat2Counter << "\n";
 				break;
 			}
 		myRepeat2Counter++;
@@ -151,13 +170,13 @@ operator: ID ASSIGN expr
 	{
 		myIfLevel++;
 		myIfInc++;
-		printf("STRING else%d else%d\n", myIfCounter + myIfLevel, myIfCounter + myIfLevel);
-		printf("STRING if%dend if%dend\n", myIfCounter + myIfLevel, myIfCounter + myIfLevel);
+		cout << "STRING else" << myIfCounter + myIfLevel << " else" << myIfCounter + myIfLevel << "\n";
+		cout << "STRING if" << myIfCounter + myIfLevel << "end if" << myIfCounter + myIfLevel << "end\n";
 		for(int i = 0; i < myStack.size(); i++)
 			if(importantVar.at(myStack.size()-i-1))
 			{
-				printf("NOT %c%c %c%c\n", (char)currentAlpha, (char)(myStack.size()+96-i), (char)currentAlpha, (char)(myStack.size()+96-i));				
-				printf("BRANCH %c%c else%d\n", (char)currentAlpha, (char)(myStack.size()+96-i), myIfCounter + myIfLevel);
+				myCode << "NOT " << (char)currentAlpha << (char)(myStack.size()+96-i) << " " << (char)currentAlpha << (char)(myStack.size()+96-i) << "\n";
+				myCode << "BRANCH " << (char)currentAlpha << (char)(myStack.size()+96-i) << " else" << myIfCounter + myIfLevel << "\n";
 				break;
 			}
 		while(myStack.size() != 0)
@@ -168,17 +187,17 @@ operator: ID ASSIGN expr
 
 	THEN operator
 	{
-		printf("GOTO if%dend\n", myIfCounter + myIfLevel);
+		myCode << "GOTO if" << myIfCounter + myIfLevel << "end\n";
 	}
 	
 	OTHERWISE
 	{
-		printf("LABEL else%d\n", myIfCounter + myIfLevel);
+		myCode << "LABEL else" << myIfCounter + myIfLevel << "\n";
 	}	
   	
 	operator
 	{
-		printf("label if%dend\n", myIfCounter + myIfLevel);
+		myCode << "label if" << myIfCounter + myIfLevel << "end\n";
 		
 		if(myIfLevel == 1)
 		{
@@ -198,7 +217,7 @@ operator: ID ASSIGN expr
 		for(int i = 0; i < myStack.size(); i++)
 			if(importantVar.at(myStack.size()-i-1))
 			{
-				printf("WRITE %c%c\n", (char)currentAlpha, (char)(myStack.size()+96-i));
+				myCode << "WRITE " << (char)currentAlpha << (char)(myStack.size()+96-i) << "\n";
 				break;
 			}
 		while(myStack.size() != 0)
@@ -209,14 +228,15 @@ operator: ID ASSIGN expr
 
 	| READ LBR ID RBR //read
 	{
-		printf("READ %s\n", $3.c_str());
+		myCode << "READ " << $3 << varQuantity($3) << "\n";
 	}
 
 	| data //declarations
 
 	| LABEL ID //make label
 	{
-		printf("LABEL %s\n STRING label%d %s\n", $2.c_str(), myLabels.size(), $2.c_str());
+		cout << "STRING label" << myLabels.size() << " " << $2 << "\n";
+		myCode << "LABEL " << $2 << "\n";
 		myLabels.push_back($2);
 	}
 
@@ -225,7 +245,7 @@ operator: ID ASSIGN expr
 		for(int i = 0; i < myLabels.size(); i++)
 			if($2 == myLabels.at(i))
 			{
-				printf("GOTO label%d\n", i);
+				myCode << "GOTO label" << i << "\n";
 				break;
 			} 
 	}
@@ -237,7 +257,7 @@ expr: INTNUM
 		myStack.push($1); 
 		importantVar.push_back(true); 
 		isStrTemp = false; 
-		printf("INTEGER %c%c %s\n", (char)currentAlpha, (char)(myStack.size()+96), myStack.top().c_str());
+		cout << "INTEGER " << (char)currentAlpha << (char)(myStack.size()+96) << " " << myStack.top() << "\n";
 	}
 
 	| STRLIT
@@ -247,22 +267,34 @@ expr: INTNUM
 		myStack.push($1); 
 		importantVar.push_back(true); 
 		isStrTemp = true; 
-		printf("STRING %c%c %s\n", (char)currentAlpha, (char)(myStack.size()+96), myStack.top().c_str());
+		cout << "STRING " << (char)currentAlpha << (char)(myStack.size()+96) << " " << myStack.top() << "\n";
 	}
 
 	| ID //добавить распознавание типа
 	{
 		myStack.push($1);
-	 	importantVar.push_back(true); 
-		printf("MOVE %s %c%c\n", myStack.top().c_str(), (char)currentAlpha, (char)(myStack.size()+96));
+	 	importantVar.push_back(true);
+		string temp = "string";
+		if(isVarExist($1) == temp)
+		{
+			isStrTemp = true; 
+			cout << "STRING " << (char)currentAlpha << (char)(myStack.size()+96) << " nothing\n";
+		}
+		temp = "integer";
+		if(isVarExist($1) == temp)
+		{
+			isStrTemp = false;
+			cout << "INTEGER " << (char)currentAlpha << (char)(myStack.size()+96) << " 0\n";
+		}
+		myCode << "MOVE " << myStack.top() << " " << (char)currentAlpha << (char)(myStack.size()+96) << "\n";
 	}
 
 	| INTNUM EX string //take symbol from string
 	{
 		myStack.push($1); 
 		importantVar.push_back(false);
-		printf("INTEGER %c%c %s\n", (char)currentAlpha, (char)(myStack.size()+96), myStack.top().c_str());
-		printf("IND %c%c %c%c %c%c\n", (char)currentAlpha, (char)(myStack.size()+95), (char)currentAlpha, (char)(myStack.size()+96), (char)currentAlpha, (char)(myStack.size()+95));
+		cout << "INTEGER " << (char)currentAlpha << (char)(myStack.size()+96) << " " << myStack.top() << "\n";
+		myCode << "IND " << (char)currentAlpha << (char)(myStack.size()+95) << " " << (char)currentAlpha << (char)(myStack.size()+96) << " " << (char)currentAlpha << (char)(myStack.size()+95) << "\n";
 	}
 	//| ID DOT ID LBR parameters RBR //call class method
 	| expr PLUS expr 
@@ -343,14 +375,14 @@ string : STRLIT
 		myStack.push($1); 
 		importantVar.push_back(true); 
 		isStrTemp = true; 
-		printf("STRING %c%c %s\n", (char)currentAlpha, (char)(myStack.size()+96), myStack.top().c_str());
+		cout << "STRING " << (char)currentAlpha << (char)(myStack.size()+96) << " " << myStack.top() << "\n";
 	}
 	| ID
 	{
 		myStack.push($1);
 	 	importantVar.push_back(true); 
 		isStrTemp = true;
-		printf("MOVE %s %c%c\n", myStack.top().c_str(), (char)currentAlpha, (char)(myStack.size()+96));
+		myCode << "MOVE " << myStack.top() << varQuantity($1) << " " << (char)currentAlpha << (char)(myStack.size()+96) << "\n";
 	}
 	;
 
@@ -361,28 +393,53 @@ string : STRLIT
 
 int main()
 {
-    return yyparse();
+	/*//stack initialization
+	printf("STRING strStack ABCDEFGHIJKLMNOPQRSTUVWXYZ\n");
+	printf("STRING intStack abcdefghijklmnopqrstuvwxyz\n");
+	for(int i = 97; i < 123; i++)
+	{
+		printf("INTEGER %c 0\n", (char)i);
+		printf("STRING %c nothing\n", (char)i-32);
+	}
+	printf("INTEGER intIndex 0\n"); //maybe 1
+	printf("INTEGER strIndex 0\n"); //maybe 1
+	printf("STRING indexName nothing\n");
+	printf("INTEGER one 1\n");
+	printf("INTEGER zero 0\n");*/
+	
+	yyparse();
+	cout << myCode.str();
+	return 0;
 }
 
-bool isVarExist(string var)
+int varQuantity(string var)
 {
+	int counter = 0;	
 	for(int i = 0; i < myVariables.size(); i++)
 		if(var == myVariables[i])
-			return true;
-	return false;
+			counter++;
+	return counter;
+}
+
+string isVarExist(string var)
+{	
+	for(int i = myVariables.size() - 1; i >= 0 ; i--)
+		if(var == myVariables[i])
+			return myVarTypes[i];	
+	return "not";
 }
 
 int expression(string operation)
 {
 	if(!isTempExist)
 		{
-			puts("INTEGER temp 0\n");
+			cout << "INTEGER temp 0\n" ;
 			isTempExist = !isTempExist;
 		}
 
 	if(!isStrTempExist)
 		{
-			puts("STRING strTemp nothing\n");
+			cout << "STRING strTemp nothing\n";
 			isStrTempExist = !isStrTempExist;
 		}
 
@@ -391,9 +448,9 @@ int expression(string operation)
 		if(importantVar.at(myStack.size()-i-1))
 		{
 			if(isStrTemp)
-				printf("%s strTemp %c%c ", operation.c_str(), (char)currentAlpha, (char)(myStack.size()+96-i));
+				myCode << operation << " strTemp " << (char)currentAlpha << (char)(myStack.size()+96-i);
 			else
-				printf("%s temp %c%c ", operation.c_str(), (char)currentAlpha, (char)(myStack.size()+96-i));
+				myCode << operation << " temp " << (char)currentAlpha << (char)(myStack.size()+96-i);
 			if(operation != "NOT")
 				importantVar.at(myStack.size()-i-1) = false;
 			break;
@@ -405,21 +462,21 @@ int expression(string operation)
 		for(int i = 0; i < myStack.size(); i++)		
 			if(importantVar.at(myStack.size()-i-1))
 			{
-				printf("%c%c\n", (char)currentAlpha, (char)(myStack.size()+96-i));
+				myCode << " " << (char)currentAlpha << (char)(myStack.size()+96-i) << "\n";
 				break;
 			}
 	}
 	else
-		puts("\n");
+		myCode << "\n";
 
 
 	for(int i = 0; i < myStack.size(); i++)
 		if(importantVar.at(myStack.size()-i-1))
 		{
 			if(isStrTemp)
-				printf("MOVE strTemp %c%c\n", (char)currentAlpha, (char)(myStack.size()+96-i));
+				myCode << "MOVE strTemp " << (char)currentAlpha << (char)(myStack.size()+96-i) << "\n";
 			else
-				printf("MOVE temp %c%c\n", (char)currentAlpha, (char)(myStack.size()+96-i));
+				myCode << "MOVE temp " << (char)currentAlpha << (char)(myStack.size()+96-i) << "\n";
 			break;
 		}
 
