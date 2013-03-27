@@ -70,7 +70,7 @@ progr :
 classmembers : 
 	|data SEMICOLON classmembers
 	| method SEMICOLON classmembers
-	;*/
+	;
 
 data : ID COMMA data
 	{
@@ -104,7 +104,7 @@ data : ID COMMA data
 			myVarTypes.push_back("integer");
 		}
 	}
-	;
+	; */
 
 simpletype : INTEGER
 	{
@@ -231,7 +231,7 @@ operator: ID ASSIGN expr
 		myCode << "READ " << $3 << varQuantity($3) << "\n";
 	}
 
-	| data //declarations
+	| declaration
 
 	| LABEL ID //make label
 	{
@@ -249,7 +249,42 @@ operator: ID ASSIGN expr
 				break;
 			} 
 	}
+	| expr
         ;
+
+declaration : ID COMMA declaration
+	{
+		$$ = $3;
+		if($3 == "string")
+		{
+			myVariables.push_back($1);
+			cout << "STRING " << $1 << varQuantity($1) << " nothing\n";
+			myVarTypes.push_back("string");	
+		}
+		else
+		{
+			myVariables.push_back($1);
+			cout << "INTEGER " << $1 << varQuantity($1) << " 0\n";
+			myVarTypes.push_back("integer");	
+		} 
+	}
+	| ID COLON simpletype
+	{
+		$$ = $3;
+		if($3 == "string")
+		{
+			myVariables.push_back($1);			
+			cout << "STRING " << $1 << varQuantity($1) << " nothing\n";
+			myVarTypes.push_back("string");		
+		}
+		else
+		{
+			myVariables.push_back($1);
+			cout << "INTEGER " << $1 << varQuantity($1) << " 0\n";
+			myVarTypes.push_back("integer");
+		}
+	}
+	;
 
 expr: INTNUM 
 	{
@@ -286,7 +321,7 @@ expr: INTNUM
 			isStrTemp = false;
 			cout << "INTEGER " << (char)currentAlpha << (char)(myStack.size()+96) << " 0\n";
 		}
-		myCode << "MOVE " << myStack.top() << " " << (char)currentAlpha << (char)(myStack.size()+96) << "\n";
+		myCode << "MOVE " << $1 << varQuantity($1) << " " << (char)currentAlpha << (char)(myStack.size()+96) << "\n";
 	}
 
 	| INTNUM EX string //take symbol from string
