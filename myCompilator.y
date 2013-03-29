@@ -24,14 +24,14 @@
 	string isVarExist(string var);
 	int varQuantity(string var);
 	int expression(string operation); //generates code for expressions
-
+	string typeDataClass(string data, string className);
 	struct variable
 	{
 		string name;
 		int value;
 	};
 	
-    vector<string> myVariables, myVarTypes;    
+    vector<string> myVariables, myVarTypes, myClasses;    
     stack<string> myStack, retAdr; //myStack is for expression calculation
 	vector<bool> importantVar; //importantVar shows if variable is temporary expression result
 	vector<string>  myLabels;
@@ -39,6 +39,7 @@
     bool isTempExist = false, isStrTempExist = false, isStrTemp = false; // for expressions
 	int currentAlpha = 97; //for generating unique variables.
 	int myIfCounter = 0, myIfInc = 0, myIfLevel = 0, myRepeatCounter = 0, myRepeat2Counter = 0, myCycleInc = 0; 
+	string dataClassTemp = "";
 %}
 
 %start progr
@@ -47,8 +48,8 @@
 %token ASSIGN SEMICOLON COMMA LBR RBR COLON DOT
 %token PLUS MINUS MULT DIVIDE GOTO LABEL CLASS EX
 %token AND OR NOT LT GT EQ NE LE GE
-%token INTNUM INTEGER
-%token STRLIT STRING
+%token INTNUM
+%token STRLIT
 %token ID //it can be either parameter or data of class
 
 %left LT GT LE GE EQ NE
@@ -64,79 +65,59 @@ progr :
 	}
 	;
 
-/*class : CLASS ID BEG classmembers END
+listofoperators : operator SEMICOLON listofoperators
+	| operator
+	| class SEMICOLON listofoperators
+	| class SEMICOLON
 	;
 
-classmembers : 
-	|data SEMICOLON classmembers
+class : CLASS ID 
+	{
+		myClasses.push_back((string)"~" + $2);
+	}
+	BEG classmembers END
+	;
+
+classmembers : data SEMICOLON classmembers
+	| data
 	| method SEMICOLON classmembers
+	| method
 	;
 
 data : ID COMMA data
 	{
 		$$ = $3;
-		if($3 == "string")
-		{
-			cout << "STRING " << $1 << varQuantity($1) << " nothing\n";
-			myVariables.push_back($1);
-			myVarTypes.push_back("string");	
-		}
-		else
-		{
-			cout << "INTEGER " << $1 << varQuantity($1) << " 0\n";
-			myVariables.push_back($1);
-			myVarTypes.push_back("integer");	
-		} 
+		myClasses.push_back($1);
+		myClasses.push_back($3);
 	}
-	| ID COLON simpletype
+	| ID COLON ID
 	{
 		$$ = $3;
-		if($3 == "string")
-		{
-			cout << "STRING " << $1 << varQuantity($1) << " nothing\n";
-			myVariables.push_back($1);
-			myVarTypes.push_back("string");		
-		}
-		else
-		{
-			cout << "INTEGER " << $1 << varQuantity($1) << " 0\n";
-			myVariables.push_back($1);
-			myVarTypes.push_back("integer");
-		}
+		myClasses.push_back($1);
+		myClasses.push_back($3);		
 	}
-	; */
+	; 
 
-simpletype : INTEGER
-	{
-		$$ = $1;
-	}
-	| STRING	
-	{
-		$$ = $1;
-	}
-	;
-
-/*method : ID COLON simpletype LBR parameters_declaration RBR BEG listofoperators END
+method : ID COLON ID LBR parameters_declaration RBR BEG listofoperators END//второе ID - simpletype
 	;
 
 parameters_declaration : 
 	|data COMMA parameters
 	| data
 	;
-*/
-listofoperators : operator SEMICOLON listofoperators
-	| operator
-	/*| class SEMICOLON listofoperators
-	| class SEMICOLON*/
+
+parameters : ID
+	| ID COMMA parameters
 	;
 
-operator: ID ASSIGN expr
+operator: id ASSIGN expr
 	{
 		$$ = $1;
 		for(int i = 0; i < myStack.size(); i++)
 			if(importantVar.at(myStack.size()-i-1))
 			{
-				myCode << "MOVE " << (char)currentAlpha << (char)(myStack.size()+96-i) << " " << $1 << varQuantity($1) << "\n";
+				myCode << "MOVE " << (char)currentAlpha << (char)(myStack.size()+96-i) << " " << $1 << varQuantity($1) << dataClassTemp << "\n";
+				dataClassTemp = "";
 				break;
 			}
 		while(myStack.size() != 0)
@@ -226,7 +207,7 @@ operator: ID ASSIGN expr
 		currentAlpha++;
 	}
 
-	| READ LBR ID RBR //read
+	| READ LBR id RBR //read
 	{
 		myCode << "READ " << $3 << varQuantity($3) << "\n";
 	}
@@ -258,31 +239,71 @@ declaration : ID COMMA declaration
 		if($3 == "string")
 		{
 			myVariables.push_back($1);
-			cout << "STRING " << $1 << varQuantity($1) << " nothing\n";
+			cout << "STRING " << $1 << varQuantity($1) << " 0\n";
 			myVarTypes.push_back("string");	
 		}
-		else
-		{
-			myVariables.push_back($1);
-			cout << "INTEGER " << $1 << varQuantity($1) << " 0\n";
-			myVarTypes.push_back("integer");	
-		} 
-	}
-	| ID COLON simpletype
-	{
-		$$ = $3;
-		if($3 == "string")
-		{
-			myVariables.push_back($1);			
-			cout << "STRING " << $1 << varQuantity($1) << " nothing\n";
-			myVarTypes.push_back("string");		
-		}
-		else
+		else if($3 == "integer")
 		{
 			myVariables.push_back($1);
 			cout << "INTEGER " << $1 << varQuantity($1) << " 0\n";
 			myVarTypes.push_back("integer");
 		}
+		else 
+			for(int i = 0; i < myClasses.size(); i++)
+			{
+				if(((string)"~" + $3) == myClasses[i])
+				{
+					myVariables.push_back($1);
+					myVarTypes.push_back(myClasses[i]);
+					int j = i + 1; 
+					while(j < myClasses.size() && myClasses[j][0] != '~')
+					{
+						if(myClasses[j+1] == "string")
+							cout << "STRING";
+						else
+							cout << "INTEGER";
+						cout << " " << $1 << varQuantity($1) << "." << myClasses[j] << " 0\n";
+						j += 2;
+					}
+					break;
+				}
+			}
+	}
+	| ID COLON ID
+	{
+		$$ = $3;
+		if($3 == "string")
+		{
+			myVariables.push_back($1);			
+			cout << "STRING " << $1 << varQuantity($1) << " 0\n";
+			myVarTypes.push_back("string");		
+		}
+		else if($3 == "integer")
+		{
+			myVariables.push_back($1);
+			cout << "INTEGER " << $1 << varQuantity($1) << " 0\n";
+			myVarTypes.push_back("integer");
+		}
+		else 
+			for(int i = 0; i < myClasses.size(); i++)
+			{
+				if(((string)"~" + $3) == myClasses[i])
+				{
+					myVariables.push_back($1);
+					myVarTypes.push_back(myClasses[i]);
+					int j = i + 1; 
+					while(j < myClasses.size() && myClasses[j][0] != '~')
+					{
+						if(myClasses[j+1] == "string")
+							cout << "STRING";
+						else
+							cout << "INTEGER";
+						cout << " " << $1 << varQuantity($1) << "." << myClasses[j] << " 0\n";
+						j += 2;
+					}
+					break;
+				}
+			}
 	}
 	;
 
@@ -305,23 +326,24 @@ expr: INTNUM
 		cout << "STRING " << (char)currentAlpha << (char)(myStack.size()+96) << " " << myStack.top() << "\n";
 	}
 
-	| ID //добавить распознавание типа
+	| id //добавить распознавание типа
 	{
 		myStack.push($1);
 	 	importantVar.push_back(true);
 		string temp = "string";
-		if(isVarExist($1) == temp)
+		if(isVarExist($1) == temp || typeDataClass(dataClassTemp, isVarExist($1)) == temp)
 		{
 			isStrTemp = true; 
-			cout << "STRING " << (char)currentAlpha << (char)(myStack.size()+96) << " nothing\n";
+			cout << "STRING " << (char)currentAlpha << (char)(myStack.size()+96) << " 0\n";
 		}
 		temp = "integer";
-		if(isVarExist($1) == temp)
+		if(isVarExist($1) == temp || typeDataClass(dataClassTemp, isVarExist($1)) == temp)
 		{
 			isStrTemp = false;
 			cout << "INTEGER " << (char)currentAlpha << (char)(myStack.size()+96) << " 0\n";
 		}
-		myCode << "MOVE " << $1 << varQuantity($1) << " " << (char)currentAlpha << (char)(myStack.size()+96) << "\n";
+		myCode << "MOVE " << $1 << varQuantity($1) << dataClassTemp << " " << (char)currentAlpha << (char)(myStack.size()+96) << "\n";
+		dataClassTemp = "";
 	}
 
 	| INTNUM EX string //take symbol from string
@@ -412,18 +434,26 @@ string : STRLIT
 		isStrTemp = true; 
 		cout << "STRING " << (char)currentAlpha << (char)(myStack.size()+96) << " " << myStack.top() << "\n";
 	}
-	| ID
+	| id
 	{
 		myStack.push($1);
 	 	importantVar.push_back(true); 
 		isStrTemp = true;
-		myCode << "MOVE " << myStack.top() << varQuantity($1) << " " << (char)currentAlpha << (char)(myStack.size()+96) << "\n";
+		cout << "STRING " << (char)currentAlpha << (char)(myStack.size()+96) << " " << 0 << "\n";
+		myCode << "MOVE " << myStack.top() << varQuantity($1) << dataClassTemp << " " << (char)currentAlpha << (char)(myStack.size()+96) << "\n";
+		dataClassTemp = "";
 	}
 	;
 
-/*parameters : ID
-	| ID COMMA parameters
-	;*/
+id :	ID
+	{
+		$$ = $1;
+	}
+	| ID DOT ID
+	{
+		$$ = $1;
+		dataClassTemp = (string)"." + $3;		
+	}
 %%
 
 int main()
@@ -434,11 +464,11 @@ int main()
 	for(int i = 97; i < 123; i++)
 	{
 		printf("INTEGER %c 0\n", (char)i);
-		printf("STRING %c nothing\n", (char)i-32);
+		printf("STRING %c 0\n", (char)i-32);
 	}
 	printf("INTEGER intIndex 0\n"); //maybe 1
 	printf("INTEGER strIndex 0\n"); //maybe 1
-	printf("STRING indexName nothing\n");
+	printf("STRING indexName 0\n");
 	printf("INTEGER one 1\n");
 	printf("INTEGER zero 0\n");*/
 	
@@ -474,7 +504,7 @@ int expression(string operation)
 
 	if(!isStrTempExist)
 		{
-			cout << "STRING strTemp nothing\n";
+			cout << "STRING strTemp 0\n";
 			isStrTempExist = !isStrTempExist;
 		}
 
@@ -516,4 +546,24 @@ int expression(string operation)
 		}
 
 	return 0;
+}
+
+string typeDataClass(string data, string className)
+{
+	data.erase(0,1);
+	for(int i = 0; i < myClasses.size(); i++)
+	{
+		if(className == myClasses[i])
+		{	
+			int j = i + 1; 
+			while(j < myClasses.size() && myClasses[j][0] != '~')
+			{
+				if(myClasses[j] == data)
+					return myClasses[j+1];
+				j += 2;
+			}
+			break;
+		}
+	}
+	return "error";
 }

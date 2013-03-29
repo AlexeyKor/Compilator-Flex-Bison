@@ -37,8 +37,6 @@ ID [a-zA-Z_][a-zA-Z0-9_]*
   return STRLIT;
 }
 
-"integer" { yylval = yytext; return INTEGER; }
-"string" { yylval = yytext; return STRING; }
 "begin" { return BEG; }
 "end" { return END; }
 "if" { return IF; }
