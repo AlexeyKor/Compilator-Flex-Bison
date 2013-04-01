@@ -53,10 +53,12 @@ ID [a-zA-Z_][a-zA-Z0-9_]*
 "class" { return CLASS; }
 "label" { return LABEL; }
 "goto" { return GOTO; }
-"return" {return RETURN; }
+"return" { return RETURN; }
 
 {ID}  { yylval = yytext; return ID; }
 
 {INTNUM} { yylval = yytext; return INTNUM; }
+
+[ \n\t\f]+ ;
 
 %%    				
