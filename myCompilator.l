@@ -1,12 +1,13 @@
 %{
-#include <string>
-#include <iostream>
+	#include <string>
+	#include <iostream>
  
-using namespace std;
+	using namespace std;
  
-#define YYSTYPE string
-#include "myCompilator.tab.h"
+	#define YYSTYPE string
+	#include "myCompilator.tab.h"
 %}
+
 %option noyywrap
 INTNUM  [0-9]+
 ID [a-zA-Z_][a-zA-Z0-9_]* 

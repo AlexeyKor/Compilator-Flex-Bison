@@ -1,28 +1,29 @@
 %{  
 	#include <cstdio>  
-    #include <string>
-    #include <iostream>
+	#include <string>
+	#include <iostream>
 	#include <sstream>
-    #include <stack>
-    #include <vector>
+	#include <stack>
+	#include <vector>
     
-    using namespace std;
-    #define YYSTYPE string
-    #define YYERROR_VERBOSE 1
-    #define DEBUG
+	using namespace std;
+	#define YYSTYPE string
+	#define YYERROR_VERBOSE 1
+	#define DEBUG
 
 	ostringstream myCode;
     
-    int yylex(void);
+	int yylex(void);
     
-    void yyerror(const char *str) {
-        #ifdef DEBUG
-          //cout << "Parser: " << str << endl;
-        #endif
-    }
+	void yyerror(const char *str) 
+	{
+	        #ifdef DEBUG
+        	//cout << "Parser: " << str << endl;
+	        #endif
+	}
  
 	int main();
-	string isVarExist(string var); //переименовать
+	string isVarExist(string var); 
 	int varQuantity(string var);
 	int expression(string operation); //generates code for expressions
 	string typeDataClass(string data, string className);
@@ -32,12 +33,11 @@
 		int value;
 	};
 	
-    vector<string> myVariables, myVarTypes, myClasses;    
-    stack<string> myStack, myPar, myParType; //myStack is for expression calculation
+	vector<string> myVariables, myVarTypes, myClasses;    
+	stack<string> myStack, myPar, myParType; //myStack is for expression calculation
 	vector<bool> importantVar; //importantVar shows if variable is temporary expression result
 	vector<string>  myLabels;
-    //int result = 0;
-    bool isStrTemp = false; // for expressions
+	bool isStrTemp = false; // for expressions
 	int currentAlpha = 97; //for generating unique variables.
 	int myIfCounter = 0, myIfInc = 0, myIfLevel = 0, myRepeatCounter = 0, myRepeat2Counter = 0, myCycleInc = 0, myRetCounter = 0; 
 	string dataClassTemp = "", currentFunc = "", currentClass = "";
@@ -113,23 +113,18 @@ data : ID COMMA data
 method : ID COLON ID LBR parameters_declaration RBR 
 	{
 		cout << "STRING " << $1 << " " << $1 << "\n";
-		/*if($3 == "string")
-			cout << "STRING " << $1 << "result 0\n";
-		else
-			cout << "INTEGER " << $1 << "result 0\n";
-		myFuncRes.push($1 + (string)"result");*/
 		myCode << "LABEL " << $1 << "\n";
 		myVariables.push_back($1);
 		myVarTypes.push_back($3);
-		for(int i = myPar.size() - 1; i = 0; i--)
-		{
+		for(int i = myPar.size() - 1; i >= 0; i--)
+		{	
 			if(myParType.top() == "string")
 			{
 				myCode << "IND indexName strIndex strStack\n";
 				myCode << "SUB strIndex one strIndex\n";
 				myCode << "MOVE strPointerHelper strTemp\n";
 				myCode << "INDIR indexName strTemp\n";
-				myCode << "MOVE strPointer " << myPar.top() << "\n";								
+				myCode << "MOVE strPointer " << myPar.top() << varQuantity(myPar.top()) << "\n";								
 			}
 			else
 			{
@@ -137,21 +132,22 @@ method : ID COLON ID LBR parameters_declaration RBR
 				myCode << "SUB intIndex one intIndex\n";
 				myCode << "MOVE intPointerHelper strTemp\n";
 				myCode << "INDIR indexName strTemp\n";
-				myCode << "MOVE intPointer " << myPar.top() << "\n";
+				myCode << "MOVE intPointer " << myPar.top() << varQuantity(myPar.top()) << "\n";
 			}
 			myPar.pop();
 			myParType.pop();
 		}
 			
 	}
-	BEG listofoperators END//второе ID - simpletype
+	BEG listofoperators END
 	{
 		if(isStrTemp)
 			myCode << "SUB strIndex one strIndex\n";
 		myCode << "IND indexName strIndex strStack\n";
 		myCode << "MOVE strPointerHelper strTemp\n";
 		myCode << "INDIR indexName strTemp\n";
-		myCode << "ADD strIndex one strIndex\n";
+		if(isStrTemp)
+			myCode << "ADD strIndex one strIndex\n";
 		myCode << "GOTO strPointer\n";
 	}
 	;
@@ -187,13 +183,15 @@ parameters : ID COMMA parameters
 		{
 			myVariables.push_back($1);			
 			cout << "STRING " << $1 << varQuantity($1) << " 0\n";
-			myVarTypes.push_back("string");		
+			myVarTypes.push_back("string");
+			myParType.push("integer");		
 		}
 		else
 		{
 			myVariables.push_back($1);
 			cout << "INTEGER " << $1 << varQuantity($1) << " 0\n";
 			myVarTypes.push_back("integer");
+			myParType.push("integer");
 		}
 		myPar.push($1);		
 	}
@@ -452,7 +450,7 @@ expr: INTNUM
 		cout << "STRING " << (char)currentAlpha << (char)(myStack.size()+96) << " " << myStack.top() << "\n";
 	}
 
-	| id //добавить распознавание внутри объявления метода класса
+	| id 
 	{
 		myStack.push($1);
 	 	importantVar.push_back(true);
@@ -513,9 +511,9 @@ expr: INTNUM
 		cout << "STRING goBack" << myRetCounter << " goBack" << myRetCounter << "\n";
 		myCode << "MOVE goBack" << myRetCounter << " strPointer\n";
 		myCode << "MOVE strPointerHelper strTemp\n";
+		myCode << "ADD strIndex one StrIndex\n";
 		myCode << "IND indexName strIndex strStack\n";
 		myCode << "INDIR strTemp indexName\n";
-		myCode << "ADD strIndex one StrIndex\n";
 		
 		for(int i = 0; i < myClasses.size(); i++)
 			if(isVarExist($1) == myClasses[i])
@@ -546,7 +544,8 @@ expr: INTNUM
 			myCode << "IND indexName strIndex strStack\n";
 			myCode << "MOVE strPointerHelper strTemp\n";
 			myCode << "INDIR indexName strTemp\n";
-			myCode << "MOVE strPointer " << (char)currentAlpha << (char)(myStack.size()+96) << "\n";			
+			myCode << "MOVE strPointer " << (char)currentAlpha << (char)(myStack.size()+96) << "\n";
+			myCode << "SUB strIndex one strIndex\n";			
 		}
 		else
 		{			
@@ -554,7 +553,8 @@ expr: INTNUM
 			myCode << "IND indexName intIndex intStack\n";
 			myCode << "MOVE intPointerHelper strTemp\n";
 			myCode << "INDIR indexName strTemp\n";
-			myCode << "MOVE intPointer " << (char)currentAlpha << (char)(myStack.size()+96) << "\n";	
+			myCode << "MOVE intPointer " << (char)currentAlpha << (char)(myStack.size()+96) << "\n";
+			myCode << "SUB intIndex one intIndex\n";	
 		}
 		myCode << "SUB strIndex one strIndex\n";		
 	}
@@ -658,51 +658,87 @@ id :	ID
 		$$ = $1;
 		dataClassTemp = (string)"." + $3;		
 	}
+	;
 listOfParameters: 
-	|id COMMA listOfParameters
+	|expr COMMA listOfParameters
 	{
-		string temp = "string";
-		if(isVarExist($1) == temp || typeDataClass(dataClassTemp, isVarExist($1)) == temp)
+		if(isStrTemp)
 		{
+			myCode << "ADD strIndex one\n";			
 			myCode << "IND indexName strIndex strStack\n";
-			myCode << "ADD strIndex one\n";
-			myCode << "MOVE " << $1 << varQuantity($1) << dataClassTemp << " strPointer\n";
+			for(int i = 0; i < myStack.size(); i++)
+				if(importantVar.at(myStack.size()-i-1))
+				{
+					myCode << "MOVE " << (char)currentAlpha << (char)(myStack.size()+96-i) << " strPointer\n";
+					dataClassTemp = "";
+					break;
+				}
+			while(myStack.size() != 0)
+				myStack.pop();
+			importantVar.clear();
+			currentAlpha++;
 			myCode << "MOVE strPointerHelper strTemp\n";
 			myCode << "INDIR strTemp indexName\n";
 		}
-		temp = "integer";
-		if(isVarExist($1) == temp || typeDataClass(dataClassTemp, isVarExist($1)) == temp)
+		else
 		{
-			myCode << "IND indexName intIndex intStack\n";
 			myCode << "ADD intIndex one\n";
-			myCode << "MOVE " << $1 << varQuantity($1) << dataClassTemp << " intPointer\n";
+			myCode << "IND indexName intIndex intStack\n";
+			for(int i = 0; i < myStack.size(); i++)
+				if(importantVar.at(myStack.size()-i-1))
+				{
+					myCode << "MOVE " << (char)currentAlpha << (char)(myStack.size()+96-i) << " intPointer\n";
+					dataClassTemp = "";
+					break;
+				}
+			while(myStack.size() != 0)
+				myStack.pop();
+			importantVar.clear();
+			currentAlpha++;
 			myCode << "MOVE intPointerHelper intTemp\n";
 			myCode << "INDIR intTemp indexName\n";
 		}
-		dataClassTemp = "";
 	}
-	| id
+	| expr
 	{
-		string temp = "string";
-		if(isVarExist($1) == temp || typeDataClass(dataClassTemp, isVarExist($1)) == temp)
+		if(isStrTemp)
 		{
+			myCode << "ADD strIndex one\n";			
 			myCode << "IND indexName strIndex strStack\n";
-			myCode << "ADD strIndex one\n";
-			myCode << "MOVE " << $1 << varQuantity($1) << dataClassTemp << " strPointer\n";
+			for(int i = 0; i < myStack.size(); i++)
+				if(importantVar.at(myStack.size()-i-1))
+				{
+					myCode << "MOVE " << (char)currentAlpha << (char)(myStack.size()+96-i) << " strPointer\n";
+					dataClassTemp = "";
+					break;
+				}
+			while(myStack.size() != 0)
+				myStack.pop();
+			importantVar.clear();
+			currentAlpha++;
 			myCode << "MOVE strPointerHelper strTemp\n";
 			myCode << "INDIR strTemp indexName\n";
 		}
-		temp = "integer";
-		if(isVarExist($1) == temp || typeDataClass(dataClassTemp, isVarExist($1)) == temp)
+		else
 		{
-			myCode << "IND indexName intIndex intStack\n";
 			myCode << "ADD intIndex one\n";
-			myCode << "MOVE " << $1 << varQuantity($1) << dataClassTemp << " intPointer\n";
+			myCode << "IND indexName intIndex intStack\n";
+			for(int i = 0; i < myStack.size(); i++)
+				if(importantVar.at(myStack.size()-i-1))
+				{
+					myCode << "MOVE " << (char)currentAlpha << (char)(myStack.size()+96-i) << " intPointer\n";
+					dataClassTemp = "";
+					break;
+				}
+			while(myStack.size() != 0)
+				myStack.pop();
+			importantVar.clear();
+			currentAlpha++;
 			myCode << "MOVE intPointerHelper intTemp\n";
 			myCode << "INDIR intTemp indexName\n";
 		}
-		dataClassTemp = "";
 	}
+	;
 %%
 
 int main()
@@ -716,8 +752,8 @@ int main()
 		myCode << "INTEGER " << (char)i << " 0\n";
 		myCode << "STRING " << (char)(i-32) << " 0\n";
 	}
-	myCode << "INTEGER intIndex 0\n"; //maybe 1
-	myCode << "INTEGER strIndex 0\n"; //maybe 1
+	myCode << "INTEGER intIndex 0\n";
+	myCode << "INTEGER strIndex 0\n"; 
 	myCode << "STRING indexName 0\n";
 	myCode << "INTEGER one 1\n";
 	myCode << "STRING strTemp 0\n";
